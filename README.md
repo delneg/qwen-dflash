@@ -7,9 +7,9 @@ Two paths, pick your hardware:
 | | Mac (Apple Silicon) | Windows (NVIDIA 12 GB+) |
 |---|---|---|
 | Engine | llama.cpp fork with **DFlash 2** speculative decoding | official llama.cpp CUDA release |
-| Quant | Q4_K_M (19 GB) + 1.1 GB draft | Unsloth UD-IQ2_XXS (7.3 GB) |
-| Needs | 36 GB+ unified RAM, macOS 14+ | 12 GB VRAM (RTX 3060 class) |
-| Speed | 16-18 tok/s on M1 Max (1.5x plain decode) | ~20-30 tok/s on RTX 3060 |
+| Quant | Q4_K_M (19 GB) + 1.1 GB draft | Unsloth quant, auto-picked for your VRAM |
+| Needs | 36 GB+ unified RAM, macOS 14+ | 8 GB+ VRAM (12 GB recommended) |
+| Speed | 16-18 tok/s on M1 Max (1.5x plain decode) | ~20-30 tok/s on RTX 3060 (12 GB tier) |
 
 ## Mac
 
@@ -55,16 +55,31 @@ irm https://raw.githubusercontent.com/delneg/qwen-dflash/main/windows/setup.ps1 
 ~\qwen-dflash\start.bat
 ```
 
-Same UI at http://127.0.0.1:8080. First launch downloads ~7.5 GB of weights.
+Same UI at http://127.0.0.1:8080. First launch downloads the model weights.
+
+The script detects your VRAM with `nvidia-smi` and picks a
+[Unsloth dynamic quant](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF) that
+fits (leaving ~3 GB of headroom for KV cache, CUDA buffers and the desktop):
+
+| VRAM | Quant | Weights |
+|---|---|---|
+| 24 GB+ | UD-Q4_K_XL | 17.6 GB |
+| 16 GB | UD-Q3_K_XL | 13.2 GB |
+| 12 GB | UD-IQ2_XXS | 7.3 GB |
+| 8 GB | UD-IQ1_S | 6.2 GB (quality noticeably degraded) |
+
+Not sure what your hardware can run in general? Try the
+[local LLM hardware calculator](https://dubir.net/tools/local-llm-hardware-calculator).
+Edit `start.bat` to override the choice.
 
 Why no DFlash here: it is unmerged upstream, and draft loading has an
 [open bug report on Windows/MSVC](https://github.com/ggml-org/llama.cpp/pull/27342)
-(`invalid vector subscript`). Plain decode with Unsloth's 2-bit dynamic quant
-is what reliably fits and runs on a 12 GB card today. When both fix themselves
-upstream, DFlash lands here too.
+(`invalid vector subscript`). Plain decode is what reliably runs on Windows
+today. When that fixes itself upstream, DFlash lands here too.
 
-Note on quality: UD-IQ2_XXS is a heavy quant. Good enough to chat and demo;
-for serious work use a bigger quant on a bigger card (or the Mac path).
+Note on quality: the 2-bit and 1-bit quants are heavy compression. Good
+enough to chat and demo; for serious work use a bigger quant on a bigger
+card (or the Mac path).
 
 ## Tuning
 
