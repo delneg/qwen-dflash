@@ -1,0 +1,68 @@
+name: build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+# llama.cpp fork with DFlash 2 support:
+#   z-lab/llama.cpp-fork, PR #1 head (= dflash2 branch + vision fixes).
+# Upstream PR: https://github.com/ggml-org/llama.cpp/pull/27342 (unmerged).
+# Bump LLAMA_SHA deliberately, then re-tag: acceptance-critical code lives there.
+env:
+  LLAMA_REPO: https://github.com/z-lab/llama.cpp-fork
+  LLAMA_SHA: 1ebcce38feb9a66200fc604e6c80d78bca1314d2
+
+permissions:
+  contents: write
+
+jobs:
+  macos-arm64:
+    runs-on: macos-14
+    steps:
+      - name: Fetch llama.cpp fork at pinned SHA
+        run: |
+          git init llama.cpp
+          cd llama.cpp
+          git remote add origin "$LLAMA_REPO"
+          git fetch --depth 1 origin "$LLAMA_SHA"
+          git checkout FETCH_HEAD
+
+      - name: Build llama-server (Metal, static, embedded shaders)
+        run: |
+          cd llama.cpp
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DGGML_METAL=ON \
+            -DGGML_METAL_EMBED_LIBRARY=ON \
+            -DLLAMA_CURL=ON \
+            -DLLAMA_BUILD_TESTS=OFF \
+            -DLLAMA_BUILD_EXAMPLES=OFF
+          cmake --build build -j --target llama-server
+
+      - name: Smoke test
+        run: |
+          ./llama.cpp/build/bin/llama-server --version
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp llama.cpp/build/bin/llama-server dist/
+          tar -C dist -czf llama-server-macos-arm64.tar.gz llama-server
+          shasum -a 256 llama-server-macos-arm64.tar.gz > llama-server-macos-arm64.tar.gz.sha256
+
+      - name: Upload artifact (manual runs)
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: llama-server-macos-arm64
+          path: llama-server-macos-arm64.tar.gz*
+
+      - name: Release (tag runs)
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            llama-server-macos-arm64.tar.gz
+            llama-server-macos-arm64.tar.gz.sha256
