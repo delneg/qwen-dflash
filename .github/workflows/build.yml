@@ -37,6 +37,7 @@ jobs:
             -DGGML_METAL=ON \
             -DGGML_METAL_EMBED_LIBRARY=ON \
             -DLLAMA_CURL=ON \
+            -DLLAMA_OPENSSL=OFF \
             -DLLAMA_BUILD_TESTS=OFF \
             -DLLAMA_BUILD_EXAMPLES=OFF
           cmake --build build -j --target llama-server
@@ -44,6 +45,13 @@ jobs:
       - name: Smoke test
         run: |
           ./llama.cpp/build/bin/llama-server --version
+
+      - name: Portability check (system libs only)
+        run: |
+          if otool -L llama.cpp/build/bin/llama-server | grep -E "/opt/homebrew|/usr/local"; then
+            echo "binary links non-system libraries; it would break on Macs without them" >&2
+            exit 1
+          fi
 
       - name: Package
         run: |
