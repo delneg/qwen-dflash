@@ -5,7 +5,7 @@
 #
 # Downloads a prebuilt llama-server (llama.cpp fork with DFlash 2, Metal build)
 # and writes a start.sh. Models (~20 GB) download on first launch.
-# Works on macOS 14+, no OS update needed. Needs a 36 GB+ Mac (48 GB is comfy).
+# Works on macOS 15+, no OS update needed. Needs a 36 GB+ Mac (48 GB is comfy).
 set -euo pipefail
 
 REPO="delneg/qwen-dflash"

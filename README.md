@@ -8,7 +8,7 @@ Two paths, pick your hardware:
 |---|---|---|
 | Engine | llama.cpp fork with **DFlash 2** speculative decoding | official llama.cpp CUDA release |
 | Quant | Q4_K_M (19 GB) + 1.1 GB draft | Unsloth quant, auto-picked for your VRAM |
-| Needs | 36 GB+ unified RAM, macOS 14+ | 8 GB+ VRAM (12 GB recommended) |
+| Needs | 36 GB+ unified RAM, macOS 15+ | 8 GB+ VRAM (12 GB recommended) |
 | Speed | 16-18 tok/s on M1 Max (1.5x plain decode) | ~20-30 tok/s on RTX 3060 (12 GB tier) |
 
 ## Mac
@@ -45,7 +45,7 @@ vision fixes on top of the dflash2 branch), pinned by SHA in
 plain `brew install llama.cpp` will do and this repo becomes a convenience
 wrapper.
 
-No macOS update needed: this runs fine on macOS 14 (Sonoma) and 15 (Sequoia). That matters
+No macOS update needed: this runs fine on macOS 15 Sequoia (macOS 14 support returns with the next CI-built binary). That matters
 because the MLX route (oMLX) requires Metal 4, which means macOS 26.
 
 ## Windows
