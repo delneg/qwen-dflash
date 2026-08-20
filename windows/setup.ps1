@@ -1,6 +1,6 @@
 # Qwen3.8-27B on an NVIDIA card, one command:
 #
-#   irm https://raw.githubusercontent.com/delneg/qwen-dflash/main/windows/setup.ps1 | iex
+#   irm https://raw.githubusercontent.com/delneg/qwen-dflash/master/windows/setup.ps1 | iex
 #
 # Uses the OFFICIAL llama.cpp Windows CUDA release (no fork): DFlash 2 is not
 # merged upstream yet and its draft loading has an open bug report on

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Qwen3.8-27B + DFlash 2 speculative decoding on Apple Silicon, one command:
 #
-#   curl -fsSL https://raw.githubusercontent.com/delneg/qwen-dflash/main/setup.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/delneg/qwen-dflash/master/setup.sh | bash
 #
 # Downloads a prebuilt llama-server (llama.cpp fork with DFlash 2, Metal build)
 # and writes a start.sh. Models (~20 GB) download on first launch.

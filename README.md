@@ -14,7 +14,7 @@ Two paths, pick your hardware:
 ## Mac
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/delneg/qwen-dflash/main/setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/delneg/qwen-dflash/master/setup.sh | bash
 ~/qwen-dflash/start.sh
 ```
 
@@ -25,7 +25,7 @@ First launch downloads ~20 GB of model weights (cached in
 Prefer to read before piping to bash? Same script, two steps:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/delneg/qwen-dflash/main/setup.sh
+curl -fsSLO https://raw.githubusercontent.com/delneg/qwen-dflash/master/setup.sh
 less setup.sh && bash setup.sh
 ```
 
@@ -51,7 +51,7 @@ because the MLX route (oMLX) requires Metal 4, which means macOS 26.
 ## Windows
 
 ```powershell
-irm https://raw.githubusercontent.com/delneg/qwen-dflash/main/windows/setup.ps1 | iex
+irm https://raw.githubusercontent.com/delneg/qwen-dflash/master/windows/setup.ps1 | iex
 ~\qwen-dflash\start.bat
 ```
 
