@@ -42,9 +42,16 @@ if ($quant -eq "UD-IQ1_S") {
 
 # ---- download the official llama.cpp CUDA build ----------------------------
 Write-Host "==> Finding latest official llama.cpp Windows CUDA build"
-$rel = Invoke-RestMethod "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest"
+# "releases/latest" points at a versioned meta-release with no binaries;
+# the prebuilt binaries live in the frequent b-number tag releases.
+$rels = Invoke-RestMethod "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=10"
+$rel = $rels | Where-Object { ($_.assets | Where-Object { $_.name -match "bin-win-cuda.*x64\.zip$" }).Count -gt 0 } |
+    Select-Object -First 1
+if (-not $rel) { throw "No release with win-cuda x64 assets in the last 10; check https://github.com/ggml-org/llama.cpp/releases" }
+# Ascending sort picks the lowest CUDA version (12.4 over 13.x): it runs on
+# far older NVIDIA drivers, and the speed difference is nil for this use.
 $bin = $rel.assets | Where-Object { $_.name -match "bin-win-cuda.*x64\.zip$" } |
-    Sort-Object name -Descending | Select-Object -First 1
+    Sort-Object name | Select-Object -First 1
 if (-not $bin) { throw "No win-cuda x64 asset in latest release; check https://github.com/ggml-org/llama.cpp/releases" }
 # cudart zip must match the binary's CUDA version (releases can carry several).
 $cudaVer = if ($bin.name -match "cu(da)?-?[\d.]+\d") { $Matches[0] } else { "" }
