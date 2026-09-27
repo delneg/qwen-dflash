@@ -3,9 +3,9 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/delneg/qwen-dflash/master/setup.sh | bash
 #
-# Downloads a prebuilt llama-server (llama.cpp fork with DFlash 2, Metal build)
+# Downloads a prebuilt llama-server (upstream llama.cpp, Metal build)
 # and writes a start.sh. Models (~20 GB) download on first launch.
-# Works on macOS 15+, no OS update needed. Needs a 36 GB+ Mac (48 GB is comfy).
+# Works on macOS 14+, no OS update needed. Needs a 36 GB+ Mac (48 GB is comfy).
 set -euo pipefail
 
 REPO="delneg/qwen-dflash"
@@ -29,20 +29,33 @@ tar xzf "$ASSET"
 rm "$ASSET"
 chmod +x llama-server
 
-cat > start.sh <<'EOF'
+# Size context and prompt cache to the machine. The model is hybrid (mostly
+# linear attention), so KV is cheap: ~2 GB per 32k tokens on top of ~22 GB.
+RAM_GB=$(( $(sysctl -n hw.memsize) / 1024 / 1024 / 1024 ))
+if   (( RAM_GB >= 64 )); then CTX=131072; CACHE_RAM=16384
+elif (( RAM_GB >= 48 )); then CTX=65536;  CACHE_RAM=8192
+else                          CTX=16384;  CACHE_RAM=4096
+fi
+echo "==> ${RAM_GB} GB RAM: context ${CTX}, prompt cache ${CACHE_RAM} MiB"
+
+cat > start.sh <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")"
+cd "\$(dirname "\$0")"
+# QUANT=Q8_0 ./start.sh for the 8-bit target + draft (~31 GB, 64 GB+ Macs).
+QUANT="\${QUANT:-Q4_K_M}"
 # n_max=3 measured fastest on M1 Max (16-18 tok/s, 84% draft acceptance).
-# Newer chips: try 5-7. First launch downloads ~20 GB of models to
-# ~/.cache/huggingface/hub/ and reuses them afterwards.
-exec ./llama-server \
-  -hf  ggml-org/Qwen3.8-27B-GGUF:Q4_K_M \
-  -hfd incoai/Qwen3.8-27B-DFlash2-GGUF:Q4_K_M \
-  --spec-type draft-dflash \
-  --spec-draft-n-max 3 \
-  --image-min-tokens 1024 \
-  -c 8192 -ngl 99 --host 127.0.0.1 --port 8080 "$@"
+# Newer chips: try 4-7. -np 1 keeps one slot so an agent's long prompt stays
+# cached between turns instead of landing in a cold slot.
+# First launch downloads the models to ~/.cache/huggingface/hub/.
+exec ./llama-server \\
+  -hf  ggml-org/Qwen3.8-27B-GGUF:\$QUANT \\
+  -hfd incoai/Qwen3.8-27B-DFlash2-GGUF:\$QUANT \\
+  --spec-type draft-dflash \\
+  --spec-draft-n-max 3 \\
+  --image-min-tokens 1024 \\
+  -np 1 -c ${CTX} --cache-ram ${CACHE_RAM} \\
+  -ngl 99 --host 127.0.0.1 --port 8080 "\$@"
 EOF
 chmod +x start.sh
 

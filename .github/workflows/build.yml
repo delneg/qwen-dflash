@@ -5,13 +5,13 @@ on:
   push:
     tags: ["v*"]
 
-# llama.cpp fork with DFlash 2 support:
-#   z-lab/llama.cpp-fork, PR #1 head (= dflash2 branch + vision fixes).
-# Upstream PR: https://github.com/ggml-org/llama.cpp/pull/27342 (unmerged).
-# Bump LLAMA_SHA deliberately, then re-tag: acceptance-critical code lives there.
+# Upstream llama.cpp. DFlash 2 landed in ggml-org/llama.cpp#27816 (Aug 27),
+# followed by the fused encoder/KV injection (#27310) and mtmd fixes.
+# Pinned to release b11213. Bump LLAMA_SHA deliberately, then re-tag:
+# acceptance-critical code lives there.
 env:
-  LLAMA_REPO: https://github.com/z-lab/llama.cpp-fork
-  LLAMA_SHA: 1ebcce38feb9a66200fc604e6c80d78bca1314d2
+  LLAMA_REPO: https://github.com/ggml-org/llama.cpp
+  LLAMA_SHA: cea74625fa0bd59464a6c6f5ac3c1c1ebfec5344
 
 permissions:
   contents: write

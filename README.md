@@ -6,9 +6,9 @@ Two paths, pick your hardware:
 
 | | Mac (Apple Silicon) | Windows (NVIDIA 12 GB+) |
 |---|---|---|
-| Engine | llama.cpp fork with **DFlash 2** speculative decoding | official llama.cpp CUDA release |
+| Engine | upstream llama.cpp with **DFlash 2** speculative decoding | official llama.cpp CUDA release |
 | Quant | Q4_K_M (19 GB) + 1.1 GB draft | Unsloth quant, auto-picked for your VRAM |
-| Needs | 36 GB+ unified RAM, macOS 15+ | 8 GB+ VRAM (12 GB recommended) |
+| Needs | 36 GB+ unified RAM, macOS 14+ | 8 GB+ VRAM (12 GB recommended) |
 | Speed | 16-18 tok/s on M1 Max (1.5x plain decode) | ~20-30 tok/s on RTX 3060 (12 GB tier) |
 
 ## Mac
@@ -37,16 +37,21 @@ them in one pass. Output is byte-identical to plain decoding (it is lossless);
 it is only faster. Measured on an M1 Max: 11.8 tok/s plain, 16-18 tok/s with
 DFlash at `--spec-draft-n-max 3` (84% draft acceptance).
 
-DFlash support is [not merged into llama.cpp yet](https://github.com/ggml-org/llama.cpp/pull/27342).
-This repo ships a prebuilt binary from the
-[z-lab fork](https://github.com/z-lab/llama.cpp-fork) (PR #1 head, which adds
-vision fixes on top of the dflash2 branch), pinned by SHA in
-[the build workflow](.github/workflows/build.yml). When the upstream PR merges,
-plain `brew install llama.cpp` will do and this repo becomes a convenience
-wrapper.
+DFlash 2 is [merged into upstream llama.cpp](https://github.com/ggml-org/llama.cpp/pull/27816)
+(Aug 27, 2026). This repo ships a prebuilt, self-contained `llama-server` from
+upstream, pinned by SHA in [the build workflow](.github/workflows/build.yml),
+so you get a known-good build without installing Xcode or Homebrew. Any recent
+llama.cpp build works too; `start.sh` is the part that matters.
 
-No macOS update needed: this runs fine on macOS 15 Sequoia (macOS 14 support returns with the next CI-built binary). That matters
-because the MLX route (oMLX) requires Metal 4, which means macOS 26.
+Updating from an older install (the z-lab fork binary): re-run the setup
+command. It replaces `llama-server` and rewrites `start.sh`, so re-add any
+flags you changed, or pass them at launch (`start.sh --reasoning off`).
+ggml-org has since re-uploaded the Qwen3.8 GGUFs, so expect one fresh ~19 GB
+download on the next launch; you can then delete the old blob from
+`~/.cache/huggingface/hub/models--ggml-org--Qwen3.8-27B-GGUF/blobs/`.
+
+No macOS update needed: the binary is built on macOS 14 and runs on 14+. That
+matters because the MLX route (oMLX) requires Metal 4, which means macOS 26.
 
 ## Windows
 
@@ -87,8 +92,19 @@ card (or the Mac path).
   monotonic on both sides there. Newer chips have more compute per byte of
   bandwidth, so try 5-7.
 - Pass extra llama-server flags straight through: `start.sh -c 32768`.
-- RAM/VRAM guide: Mac path needs ~22 GB resident at 8k context (+~2 GB per
-  extra 32k). Windows path fits 12 GB VRAM at 8k context.
+- `setup.sh` sizes context to your RAM: 16k on 36 GB, 64k on 48 GB, 128k on
+  64 GB+. Mac path needs ~22 GB resident at 8k context (+~2 GB per extra 32k).
+  Windows path fits 12 GB VRAM at 8k context.
+- 64 GB+ Macs: `QUANT=Q8_0 ~/qwen-dflash/start.sh` runs the 8-bit target and
+  draft (~31 GB). Plain decode is slower at 8-bit, but DFlash gains more there,
+  and 4-bit loses accuracy on hard math. Measure both on your machine.
+- Long prompts (coding agents): speculative decoding only speeds up
+  generation, not prompt processing. What saves you there is reusing the
+  prompt cache between turns. `start.sh` runs one slot (`-np 1`) with a RAM
+  prompt cache sized to your Mac. The model is hybrid, so the cache is reused
+  only when the earlier messages are unchanged; an agent that rewrites or
+  trims history forces a full re-read. Look for `prompt eval` in the log: it
+  should cover only the new tokens of each turn.
 - Speculative decoding does not change outputs. If you see different text with
   and without it at temperature 0, that is a bug; file an issue.
 
