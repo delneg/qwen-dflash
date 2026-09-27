@@ -40,8 +40,9 @@ DFlash at `--spec-draft-n-max 3` (84% draft acceptance).
 DFlash 2 is [merged into upstream llama.cpp](https://github.com/ggml-org/llama.cpp/pull/27816)
 (Aug 27, 2026). This repo ships a prebuilt, self-contained `llama-server` from
 upstream, pinned by SHA in [the build workflow](.github/workflows/build.yml),
-so you get a known-good build without installing Xcode or Homebrew. Any recent
-llama.cpp build works too; `start.sh` is the part that matters.
+so you get a known-good build without installing Xcode or Homebrew. Any
+llama.cpp build from Aug 27 onward works too; `start.sh` is the part that
+matters.
 
 Updating from an older install (the z-lab fork binary): re-run the setup
 command. It replaces `llama-server` and rewrites `start.sh`, so re-add any
@@ -50,8 +51,7 @@ ggml-org has since re-uploaded the Qwen3.8 GGUFs, so expect one fresh ~19 GB
 download on the next launch; you can then delete the old blob from
 `~/.cache/huggingface/hub/models--ggml-org--Qwen3.8-27B-GGUF/blobs/`.
 
-No macOS update needed: the binary is built on macOS 14 and runs on 14+. That
-matters because the MLX route (oMLX) requires Metal 4, which means macOS 26.
+No macOS update needed: the binary targets macOS 14 and runs on 14+.
 
 ## Windows
 
@@ -90,20 +90,21 @@ card (or the Mac path).
 
 - `--spec-draft-n-max 3` (Mac) was measured optimal on M1 Max; the sweep is
   monotonic on both sides there. Newer chips have more compute per byte of
-  bandwidth, so try 5-7.
+  bandwidth, so try 4-7.
 - Pass extra llama-server flags straight through: `start.sh -c 32768`.
 - `setup.sh` sizes context to your RAM: 16k on 36 GB, 64k on 48 GB, 128k on
   64 GB+. Mac path needs ~22 GB resident at 8k context (+~2 GB per extra 32k).
   Windows path fits 12 GB VRAM at 8k context.
 - 64 GB+ Macs: `QUANT=Q8_0 ~/qwen-dflash/start.sh` runs the 8-bit target and
-  draft (~31 GB). Plain decode is slower at 8-bit, but DFlash gains more there,
-  and 4-bit loses accuracy on hard math. Measure both on your machine.
+  draft (~31 GB). Plain decode is slower at 8-bit, but speculative decoding
+  claws back more of it (in MLX benchmarks, 3.6x at 8-bit vs 2.3x at 4-bit).
+  Measure both on your machine.
 - Long prompts (coding agents): speculative decoding only speeds up
   generation, not prompt processing. What saves you there is reusing the
   prompt cache between turns. `start.sh` runs one slot (`-np 1`) with a RAM
-  prompt cache sized to your Mac. The model is hybrid, so the cache is reused
-  only when the earlier messages are unchanged; an agent that rewrites or
-  trims history forces a full re-read. Look for `prompt eval` in the log: it
+  prompt cache sized to your Mac. The model is hybrid, so it can only rewind
+  to a saved checkpoint: an agent that rewrites or trims earlier messages
+  makes it re-read much of the prompt. Look for `prompt eval` in the log: it
   should cover only the new tokens of each turn.
 - Speculative decoding does not change outputs. If you see different text with
   and without it at temperature 0, that is a bug; file an issue.

@@ -32,7 +32,7 @@ chmod +x llama-server
 # Size context and prompt cache to the machine. The model is hybrid (mostly
 # linear attention), so KV is cheap: ~2 GB per 32k tokens on top of ~22 GB.
 RAM_GB=$(( $(sysctl -n hw.memsize) / 1024 / 1024 / 1024 ))
-if   (( RAM_GB >= 64 )); then CTX=131072; CACHE_RAM=16384
+if   (( RAM_GB >= 64 )); then CTX=131072; CACHE_RAM=8192
 elif (( RAM_GB >= 48 )); then CTX=65536;  CACHE_RAM=8192
 else                          CTX=16384;  CACHE_RAM=4096
 fi

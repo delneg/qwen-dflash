@@ -7,20 +7,26 @@ on:
 
 # Upstream llama.cpp. DFlash 2 landed in ggml-org/llama.cpp#27816 (Aug 27),
 # followed by the fused encoder/KV injection (#27310) and mtmd fixes.
-# Pinned to release b11213. Bump LLAMA_SHA deliberately, then re-tag:
-# acceptance-critical code lives there.
+# Pinned to release b11213. Bump LLAMA_SHA and LLAMA_BUILD together,
+# deliberately, then re-tag: acceptance-critical code lives there.
+# LLAMA_BUILD matters because the shallow clone can't count commits: it sets
+# the version string and picks the matching prebuilt web UI.
 env:
   LLAMA_REPO: https://github.com/ggml-org/llama.cpp
   LLAMA_SHA: cea74625fa0bd59464a6c6f5ac3c1c1ebfec5344
+  LLAMA_BUILD: 11213
 
 permissions:
   contents: write
 
 jobs:
   macos-arm64:
-    runs-on: macos-14
+    # Needs a macOS 15+ SDK: Metal residency sets (keep weights resident on
+    # the GPU) are compiled out otherwise. Upstream releases build here too.
+    # The deployment target keeps the binary running on macOS 14.
+    runs-on: macos-26
     steps:
-      - name: Fetch llama.cpp fork at pinned SHA
+      - name: Fetch llama.cpp at pinned SHA
         run: |
           git init llama.cpp
           cd llama.cpp
@@ -34,9 +40,10 @@ jobs:
           cmake -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
+            -DLLAMA_BUILD_NUMBER="$LLAMA_BUILD" \
             -DGGML_METAL=ON \
             -DGGML_METAL_EMBED_LIBRARY=ON \
-            -DLLAMA_CURL=ON \
             -DLLAMA_OPENSSL=OFF \
             -DLLAMA_BUILD_BORINGSSL=ON \
             -DLLAMA_BUILD_TESTS=OFF \
@@ -65,6 +72,10 @@ jobs:
             echo "binary links non-system libraries; it would break on Macs without them" >&2
             exit 1
           fi
+          otool -l llama.cpp/build/bin/llama-server | grep -q "minos 14.0" || {
+            echo "binary does not target macOS 14.0; README promises 14+" >&2
+            exit 1
+          }
 
       - name: Package
         run: |
